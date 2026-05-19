@@ -1,0 +1,76 @@
+# ============================================================
+# SENSITIVE CONFIGURATION – never commit these
+# ============================================================
+src/main/resources/application.properties
+src/test/resources/application.properties
+target/classes/application.properties
+target/test-classes/application.properties
+
+# ============================================================
+# MAVEN
+# ============================================================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ============================================================
+# COMPILED / BUILD OUTPUT
+# ============================================================
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# ============================================================
+# LOGS
+# ============================================================
+*.log
+logs/
+spring.log
+
+# ============================================================
+# IDE – IntelliJ IDEA
+# ============================================================
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# IDE – VS Code
+.vscode/
+*.code-workspace
+
+# IDE – Eclipse / STS
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+bin/
+
+# IDE – NetBeans
+nbactions.xml
+nb-configuration.xml
+
+# ============================================================
+# OS FILES
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# ENVIRONMENT / SECRETS
+# ============================================================
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
