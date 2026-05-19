@@ -1,12 +1,4 @@
 # ============================================================
-# SENSITIVE CONFIGURATION – never commit these
-# ============================================================
-src/main/resources/application.properties
-src/test/resources/application.properties
-target/classes/application.properties
-target/test-classes/application.properties
-
-# ============================================================
 # MAVEN
 # ============================================================
 target/
