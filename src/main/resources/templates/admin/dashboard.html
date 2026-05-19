@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard – Order Monitor</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <link th:href="@{/css/dashboard.css}" rel="stylesheet"/>
+</head>
+<body class="dashboard-body">
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon-sm"><i class="fas fa-shopping-bag"></i></div>
+    <span>OrderMonitor</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#overview" class="nav-item active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+    <a href="#orders" class="nav-item"><i class="fas fa-list-alt"></i> All Orders</a>
+    <a href="#delayed" class="nav-item"><i class="fas fa-exclamation-triangle"></i> Delayed</a>
+    <a href="#activity" class="nav-item"><i class="fas fa-history"></i> Activity Feed</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-info-sidebar">
+      <div class="user-avatar"><i class="fas fa-shield-alt"></i></div>
+      <div>
+        <div class="user-name-sm" th:text="${userName}">Admin</div>
+        <div class="user-role-sm">Administrator</div>
+      </div>
+    </div>
+    <a th:href="@{/logout}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="main-content">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <h2 class="page-title">Operations Dashboard</h2>
+      <p class="page-subtitle">Real-time e-commerce order monitoring</p>
+    </div>
+    <div class="topbar-right">
+      <div class="ws-indicator" id="wsIndicator">
+        <span class="ws-dot"></span>
+        <span id="wsStatus">Connecting...</span>
+      </div>
+      <div class="notification-bell" id="notifBell">
+        <i class="fas fa-bell"></i>
+        <span class="notif-badge" id="notifCount" style="display:none;">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Live Notification Panel -->
+  <div class="notif-panel glass-card" id="notifPanel" style="display:none;">
+    <div class="notif-panel-header">
+      <span><i class="fas fa-bolt me-2"></i>Live Alerts</span>
+      <button onclick="closeNotifPanel()" class="notif-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="notifList" class="notif-list"></div>
+  </div>
+
+  <!-- ── STAT CARDS ── -->
+  <div id="overview" class="section-anchor"></div>
+  <div class="stats-grid">
+    <div class="stat-card gradient-blue">
+      <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${stats.totalOrders}">0</div>
+        <div class="stat-label">Total Orders</div>
+      </div>
+    </div>
+    <div class="stat-card gradient-yellow">
+      <div class="stat-icon"><i class="fas fa-clock"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${stats.delayedShipments}">0</div>
+        <div class="stat-label">Delayed Shipments</div>
+      </div>
+    </div>
+    <div class="stat-card gradient-orange">
+      <div class="stat-icon"><i class="fas fa-truck"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${stats.delayedDeliveries}">0</div>
+        <div class="stat-label">Delayed Deliveries</div>
+      </div>
+    </div>
+    <div class="stat-card gradient-purple">
+      <div class="stat-icon"><i class="fas fa-users"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${stats.activeSubscribers}">0</div>
+        <div class="stat-label">Active Customers</div>
+      </div>
+    </div>
+    <div class="stat-card gradient-green">
+      <div class="stat-icon"><i class="fas fa-check-double"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${stats.deliveredOrders}">0</div>
+        <div class="stat-label">Delivered</div>
+      </div>
+    </div>
+    <div class="stat-card gradient-red">
+      <div class="stat-icon"><i class="fas fa-ban"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${stats.cancelledOrders}">0</div>
+        <div class="stat-label">Cancelled</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DELAYED WARNINGS ── -->
+  <div id="delayed" class="section-anchor"></div>
+  <div th:if="${!delayedShipments.empty or !delayedDeliveries.empty}" class="warning-bar glass-card">
+    <div class="warning-bar-inner">
+      <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+      <strong th:text="${delayedShipments.size() + delayedDeliveries.size()}">0</strong>
+      urgent orders require your attention
+      <span class="pulse-dot"></span>
+    </div>
+  </div>
+
+  <!-- ── ALL ORDERS TABLE ── -->
+  <div id="orders" class="section-anchor"></div>
+  <div class="glass-card mt-4">
+    <div class="card-header-custom">
+      <div>
+        <h3 class="card-title"><i class="fas fa-table me-2"></i>Live Order Table</h3>
+        <p class="card-subtitle">Click Update to change an order's status</p>
+      </div>
+      <div class="header-actions">
+        <input type="text" id="orderSearch" class="search-input" placeholder="🔍 Search orders..."/>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="data-table" id="ordersTable">
+        <thead>
+          <tr>
+            <th>#ID</th>
+            <th>Customer</th>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Countdown</th>
+            <th>Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody">
+          <tr th:each="order : ${orders}" th:id="'row-' + ${order.id}" class="order-row">
+            <td class="order-id">#<span th:text="${order.id}"></span></td>
+            <td th:text="${order.userId}">-</td>
+            <td><span class="stock-symbol" th:text="${order.productName}">Product</span></td>
+            <td>
+              <span class="badge-buy" th:text="${order.category}">—</span>
+            </td>
+            <td th:text="${order.quantity}">0</td>
+            <td class="price-cell">$<span th:text="${#numbers.formatDecimal(order.price, 1, 2)}">0.00</span></td>
+            <td>
+              <span th:class="${order.paymentStatus == 'COMPLETED'} ? 'badge-paid' : 'badge-pending'"
+                    th:text="${order.paymentStatus}">PENDING</span>
+            </td>
+            <td>
+              <span th:class="'status-badge status-' + ${order.orderStatus.toLowerCase()}"
+                    th:text="${order.orderStatus}"
+                    th:attr="data-order-id=${order.id}">PLACED</span>
+            </td>
+            <td class="countdown-cell"
+                th:attr="data-placed=${order.placedAt}, data-shipped=${order.shippedAt}, data-status=${order.orderStatus}">
+              <span class="countdown-timer">—</span>
+            </td>
+            <td class="time-cell"
+                th:attr="data-time=${order.updatedAt}"
+                th:text="${#temporals.format(order.updatedAt, 'HH:mm dd MMM')}">—</td>
+            <td>
+              <div class="action-dropdown">
+                <button class="btn-action" th:attr="onclick='openStatusModal(' + ${order.id} + ', \'' + ${order.orderStatus} + '\')'">
+                  <i class="fas fa-edit"></i> Update
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr th:if="${orders.empty}">
+            <td colspan="11" class="empty-state">
+              <i class="fas fa-inbox"></i>
+              <p>No orders yet. Waiting for customers...</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── LIVE ACTIVITY FEED ── -->
+  <div id="activity" class="section-anchor"></div>
+  <div class="glass-card mt-4">
+    <div class="card-header-custom">
+      <h3 class="card-title"><i class="fas fa-history me-2"></i>Live Activity Feed</h3>
+      <span class="live-badge"><span class="pulse-dot"></span> LIVE</span>
+    </div>
+    <div class="activity-feed" id="activityFeed">
+      <div th:each="event : ${recentEvents}" class="activity-item">
+        <div class="activity-dot" th:classappend="${event.eventType}"></div>
+        <div class="activity-content">
+          <span class="activity-msg" th:text="${event.message}"></span>
+          <span class="activity-time" th:text="${#temporals.format(event.createdAt, 'HH:mm:ss')}"></span>
+        </div>
+      </div>
+      <div th:if="${recentEvents.empty}" class="activity-empty">
+        <i class="fas fa-satellite-dish"></i> Waiting for live events...
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- Status Update Modal -->
+<div class="modal-overlay" id="statusModal">
+  <div class="modal-card">
+    <div class="modal-header-custom">
+      <h4><i class="fas fa-edit me-2"></i>Update Order Status</h4>
+      <button onclick="closeStatusModal()" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body-custom">
+      <p class="modal-subtitle">Order <strong id="modalOrderId">#—</strong> · Current: <span class="status-badge" id="modalCurrentStatus">—</span></p>
+      <div class="status-options" id="statusOptions">
+        <button class="status-opt status-PLACED" onclick="updateStatus('PLACED')">📋 PLACED</button>
+        <button class="status-opt status-PAID" onclick="updateStatus('PAID')">💳 PAID</button>
+        <button class="status-opt status-SHIPPED" onclick="updateStatus('SHIPPED')">🚀 SHIPPED</button>
+        <button class="status-opt status-DELIVERED" onclick="updateStatus('DELIVERED')">✅ DELIVERED</button>
+        <button class="status-opt status-CANCELLED" onclick="updateStatus('CANCELLED')">❌ CANCELLED</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script th:src="@{/js/admin.js}"></script>
+</body>
+</html>

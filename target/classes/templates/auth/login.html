@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login – Order Monitor</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <link th:href="@{/css/auth.css}" rel="stylesheet"/>
+</head>
+<body class="auth-body">
+
+<div class="auth-bg">
+  <div class="auth-particles"></div>
+  <div class="auth-card-wrapper">
+    <div class="auth-card">
+
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
+        <div>
+          <h1 class="logo-title">OrderMonitor</h1>
+          <p class="logo-subtitle">Real-Time Trade Platform</p>
+        </div>
+      </div>
+
+      <h2 class="auth-heading">Welcome Back</h2>
+      <p class="auth-subheading">Sign in to your account</p>
+
+      <!-- Flash messages -->
+      <div th:if="${successMsg}" class="alert-success-custom" th:text="${successMsg}"></div>
+      <div th:if="${errorMsg}" class="alert-error-custom" th:text="${errorMsg}"></div>
+
+      <form th:action="@{/login}" th:object="${loginRequest}" method="post">
+        <div class="form-group-custom">
+          <label class="form-label-custom"><i class="fas fa-envelope me-2"></i>Email Address</label>
+          <input type="email" th:field="*{email}" class="form-control-custom"
+                 placeholder="you@example.com" autocomplete="email" required/>
+          <span th:if="${#fields.hasErrors('email')}" class="field-error" th:errors="*{email}"></span>
+        </div>
+
+        <div class="form-group-custom">
+          <label class="form-label-custom"><i class="fas fa-lock me-2"></i>Password</label>
+          <div class="input-eye-wrapper">
+            <input type="password" th:field="*{password}" class="form-control-custom"
+                   id="passwordInput" placeholder="••••••••" autocomplete="current-password" required/>
+            <button type="button" class="eye-btn" onclick="togglePassword()">
+              <i class="fas fa-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+          <span th:if="${#fields.hasErrors('password')}" class="field-error" th:errors="*{password}"></span>
+        </div>
+
+        <button type="submit" class="btn-auth">
+          <i class="fas fa-sign-in-alt me-2"></i>Sign In
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        <p>Don't have an account?
+          <a th:href="@{/register}" class="auth-link">Create one</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="auth-promo">
+      <div class="promo-content">
+        <div class="promo-icon"><i class="fas fa-bolt"></i></div>
+        <h2>Real-Time Trading</h2>
+        <p>Monitor live order flows, get instant WebSocket updates, and manage your portfolio with confidence.</p>
+        <div class="promo-features">
+          <div class="feature-item"><i class="fas fa-check-circle"></i> Live WebSocket Updates</div>
+          <div class="feature-item"><i class="fas fa-check-circle"></i> Role-Based Dashboards</div>
+          <div class="feature-item"><i class="fas fa-check-circle"></i> Email Notifications</div>
+          <div class="feature-item"><i class="fas fa-check-circle"></i> Admin Reminder System</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function togglePassword() {
+    const input = document.getElementById('passwordInput');
+    const icon = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+  }
+</script>
+</body>
+</html>

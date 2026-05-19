@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Dashboard – Order Monitor</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <link th:href="@{/css/dashboard.css}" rel="stylesheet"/>
+</head>
+<body class="dashboard-body">
+
+<!-- Hidden userId for JS -->
+<input type="hidden" id="currentUserId" th:value="${userId}"/>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon-sm"><i class="fas fa-shopping-bag"></i></div>
+    <span>OrderMonitor</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#overview" class="nav-item active"><i class="fas fa-tachometer-alt"></i> Overview</a>
+    <a href="#place-order" class="nav-item"><i class="fas fa-plus-circle"></i> Place Order</a>
+    <a href="#live-orders" class="nav-item"><i class="fas fa-bolt"></i> Live Orders</a>
+    <a href="#completed" class="nav-item"><i class="fas fa-check-circle"></i> Completed</a>
+    <a href="#cancelled" class="nav-item"><i class="fas fa-ban"></i> Cancelled</a>
+    <a href="#notifications" class="nav-item"><i class="fas fa-bell"></i> Notifications
+      <span th:if="${unreadCount > 0}" class="nav-badge" th:text="${unreadCount}"></span>
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-info-sidebar">
+      <div class="user-avatar subscriber-avatar"><i class="fas fa-user"></i></div>
+      <div>
+        <div class="user-name-sm" th:text="${userName}">Customer</div>
+        <div class="user-role-sm">Customer</div>
+      </div>
+    </div>
+    <a th:href="@{/logout}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="main-content">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <h2 class="page-title">My Orders</h2>
+      <p class="page-subtitle">Track and manage your product orders in real-time</p>
+    </div>
+    <div class="topbar-right">
+      <div class="ws-indicator" id="wsIndicator">
+        <span class="ws-dot"></span>
+        <span id="wsStatus">Connecting...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ── STAT CARDS ── -->
+  <div id="overview" class="section-anchor"></div>
+  <div class="stats-grid four-col">
+    <div class="stat-card gradient-blue">
+      <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${orders.size()}">0</div>
+        <div class="stat-label">Total Orders</div>
+      </div>
+    </div>
+    <div class="stat-card gradient-indigo">
+      <div class="stat-icon"><i class="fas fa-bolt"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${liveOrders.size()}">0</div>
+        <div class="stat-label">Active Orders</div>
+      </div>
+    </div>
+    <div class="stat-card gradient-green">
+      <div class="stat-icon"><i class="fas fa-check-double"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${completedOrders.size()}">0</div>
+        <div class="stat-label">Delivered</div>
+      </div>
+    </div>
+    <div class="stat-card gradient-red">
+      <div class="stat-icon"><i class="fas fa-ban"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" th:text="${cancelledOrders.size()}">0</div>
+        <div class="stat-label">Cancelled</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PLACE ORDER FORM ── -->
+  <div id="place-order" class="section-anchor"></div>
+  <div class="glass-card mt-4">
+    <div class="card-header-custom">
+      <h3 class="card-title"><i class="fas fa-plus-circle me-2"></i>Place New Order</h3>
+    </div>
+    <div class="place-order-form">
+      <div class="form-row-custom">
+        <div class="form-field">
+          <label>Product Name</label>
+          <input type="text" id="productName" class="dash-input" placeholder="e.g. Wireless Headphones" maxlength="100"/>
+        </div>
+        <div class="form-field">
+          <label>Category</label>
+          <select id="category" class="dash-input">
+            <option value="Electronics">Electronics</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Books">Books</option>
+            <option value="Home &amp; Kitchen">Home &amp; Kitchen</option>
+            <option value="Sports">Sports</option>
+            <option value="Beauty">Beauty</option>
+            <option value="Toys">Toys</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Quantity</label>
+          <input type="number" id="quantity" class="dash-input" placeholder="e.g. 2" min="1"/>
+        </div>
+        <div class="form-field">
+          <label>Unit Price ($)</label>
+          <input type="number" id="price" class="dash-input" placeholder="e.g. 49.99" step="0.01" min="0.01"/>
+        </div>
+        <div class="form-field form-field-btn">
+          <button onclick="placeOrder()" class="btn-place-order" id="placeOrderBtn">
+            <i class="fas fa-shopping-cart me-2"></i>Place Order
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LIVE ORDERS ── -->
+  <div id="live-orders" class="section-anchor"></div>
+  <div class="glass-card mt-4">
+    <div class="card-header-custom">
+      <h3 class="card-title"><i class="fas fa-bolt me-2"></i>Live Orders</h3>
+      <span class="live-badge"><span class="pulse-dot"></span> LIVE</span>
+    </div>
+    <div id="liveOrdersContainer">
+      <div th:if="${liveOrders.empty}" class="empty-state">
+        <i class="fas fa-satellite-dish"></i>
+        <p>No active orders. Place one above!</p>
+      </div>
+      <div th:each="order : ${liveOrders}"
+           class="order-card"
+           th:id="'order-' + ${order.id}"
+           th:attr="data-status=${order.orderStatus}, data-placed=${order.placedAt}, data-shipped=${order.shippedAt}">
+        <div class="order-card-header">
+          <div class="order-card-id">#<span th:text="${order.id}"></span></div>
+          <span th:class="'status-badge status-' + ${order.orderStatus.toLowerCase()}"
+                th:text="${order.orderStatus}"></span>
+        </div>
+        <div class="order-card-body">
+          <div class="order-detail">
+            <span class="detail-label">Product</span>
+            <span class="stock-symbol" th:text="${order.productName}">—</span>
+          </div>
+          <div class="order-detail">
+            <span class="detail-label">Category</span>
+            <span class="badge-buy" th:text="${order.category}">—</span>
+          </div>
+          <div class="order-detail">
+            <span class="detail-label">Qty</span>
+            <span th:text="${order.quantity}">0</span>
+          </div>
+          <div class="order-detail">
+            <span class="detail-label">Unit Price</span>
+            <span class="price-cell">$<span th:text="${#numbers.formatDecimal(order.price, 1, 2)}">0.00</span></span>
+          </div>
+          <div class="order-detail">
+            <span class="detail-label">Payment</span>
+            <span th:class="${order.paymentStatus == 'COMPLETED'} ? 'badge-paid' : 'badge-pending'"
+                  th:text="${order.paymentStatus}">—</span>
+          </div>
+          <div class="order-detail">
+            <span class="detail-label">Countdown</span>
+            <span class="countdown-timer" th:attr="data-order-id=${order.id}">—</span>
+          </div>
+        </div>
+        <div class="order-card-actions">
+          <button th:if="${order.paymentStatus == 'PENDING'}"
+                  th:attr="onclick='payOrder(' + ${order.id} + ')'"
+                  class="btn-pay">
+            <i class="fas fa-credit-card me-1"></i> Pay Now
+          </button>
+          <button th:if="${order.orderStatus != 'CANCELLED' and order.orderStatus != 'DELIVERED'}"
+                  th:attr="onclick='cancelOrder(' + ${order.id} + ')'"
+                  class="btn-cancel-order">
+            <i class="fas fa-times me-1"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COMPLETED ORDERS ── -->
+  <div id="completed" class="section-anchor"></div>
+  <div class="glass-card mt-4">
+    <div class="card-header-custom">
+      <h3 class="card-title"><i class="fas fa-check-circle me-2"></i>Delivered Orders</h3>
+    </div>
+    <div th:if="${completedOrders.empty}" class="empty-state">
+      <i class="fas fa-box-open"></i>
+      <p>No delivered orders yet.</p>
+    </div>
+    <div th:each="order : ${completedOrders}" class="order-card order-card-delivered">
+      <div class="order-card-header">
+        <div class="order-card-id">#<span th:text="${order.id}"></span></div>
+        <span class="status-badge status-delivered">DELIVERED</span>
+      </div>
+      <div class="order-card-body">
+        <div class="order-detail">
+          <span class="detail-label">Product</span>
+          <span class="stock-symbol" th:text="${order.productName}">—</span>
+        </div>
+        <div class="order-detail">
+          <span class="detail-label">Category</span>
+          <span class="badge-buy" th:text="${order.category}">—</span>
+        </div>
+        <div class="order-detail">
+          <span class="detail-label">Qty</span>
+          <span th:text="${order.quantity}">0</span>
+        </div>
+        <div class="order-detail">
+          <span class="detail-label">Unit Price</span>
+          <span class="price-cell">$<span th:text="${#numbers.formatDecimal(order.price, 1, 2)}">0.00</span></span>
+        </div>
+        <div class="order-detail">
+          <span class="detail-label">Delivered</span>
+          <span th:text="${order.deliveredAt != null ? #temporals.format(order.deliveredAt, 'dd MMM HH:mm') : '—'}">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CANCELLED ORDERS ── -->
+  <div id="cancelled" class="section-anchor"></div>
+  <div class="glass-card mt-4">
+    <div class="card-header-custom">
+      <h3 class="card-title"><i class="fas fa-ban me-2"></i>Cancelled Orders</h3>
+    </div>
+    <div th:if="${cancelledOrders.empty}" class="empty-state">
+      <i class="fas fa-check"></i>
+      <p>No cancelled orders.</p>
+    </div>
+    <div th:each="order : ${cancelledOrders}" class="order-card order-card-cancelled">
+      <div class="order-card-header">
+        <div class="order-card-id">#<span th:text="${order.id}"></span></div>
+        <span class="status-badge status-cancelled">CANCELLED</span>
+      </div>
+      <div class="order-card-body">
+        <div class="order-detail">
+          <span class="detail-label">Product</span>
+          <span class="stock-symbol" th:text="${order.productName}">—</span>
+        </div>
+        <div class="order-detail">
+          <span class="detail-label">Category</span>
+          <span class="badge-buy" th:text="${order.category}">—</span>
+        </div>
+        <div class="order-detail">
+          <span class="detail-label">Qty</span>
+          <span th:text="${order.quantity}">0</span>
+        </div>
+        <div class="order-detail">
+          <span class="detail-label">Unit Price</span>
+          <span class="price-cell">$<span th:text="${#numbers.formatDecimal(order.price, 1, 2)}">0.00</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── NOTIFICATIONS ── -->
+  <div id="notifications" class="section-anchor"></div>
+  <div class="glass-card mt-4 mb-5">
+    <div class="card-header-custom">
+      <h3 class="card-title"><i class="fas fa-bell me-2"></i>Notifications</h3>
+      <button onclick="markAllRead()" class="btn-mark-read">
+        <i class="fas fa-check-double me-1"></i> Mark All Read
+      </button>
+    </div>
+    <div class="notif-list-dash" id="notifListDash">
+      <div th:each="n : ${notifications}"
+           th:class="${n.isRead} ? 'notif-item-dash read' : 'notif-item-dash unread'">
+        <div class="notif-icon-dash">
+          <i class="fas fa-bell"></i>
+        </div>
+        <div class="notif-content-dash">
+          <p class="notif-msg" th:text="${n.message}">—</p>
+          <span class="notif-time" th:text="${#temporals.format(n.createdAt, 'dd MMM yyyy HH:mm')}">—</span>
+        </div>
+      </div>
+      <div th:if="${notifications.empty}" class="empty-state">
+        <i class="fas fa-bell-slash"></i>
+        <p>No notifications yet.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script th:src="@{/js/subscriber.js}"></script>
+</body>
+</html>
