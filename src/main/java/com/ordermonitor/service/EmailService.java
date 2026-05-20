@@ -3,33 +3,43 @@ package com.ordermonitor.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.ordermonitor.entity.Order;
 import com.ordermonitor.entity.User;
 
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 /**
- * Sends HTML email notifications via Resend API (HTTPS).
- * Uses port 443 – works on Render free tier (SMTP ports are blocked).
+ * Sends HTML email notifications.
+ *
+ * All emails come from: online.monitor.apt@gmail.com
  * All send methods are @Async – they never block the HTTP thread.
+ *
+ * Bug fixes applied:
+ *  1. MimeMessageHelper multipart=false  → correct for HTML-only emails (no attachments).
+ *     multipart=true wraps the body in multipart/mixed, causing Gmail SMTP to silently
+ *     drop or misrender the message.
+ *  2. spring.mail.properties.mail.smtp.ssl.trust=smtp.gmail.com must be set in
+ *     application.properties so the STARTTLS handshake on port 587 succeeds reliably.
  */
 @Service
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
-    @Value("${resend.api.key}")
-    private String resendApiKey;
+    private final JavaMailSender mailSender;
 
     @Value("${spring.mail.username:online.monitor.apt@gmail.com}")
     private String fromEmail;
+
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
 
     // ---------------------------------------------------------------
     // Customer Emails
@@ -38,25 +48,29 @@ public class EmailService {
     @Async("emailExecutor")
     public void sendOrderPlacedEmail(User user, Order order) {
         String subject = "📋 Order Placed – #" + order.getId() + " | " + order.getProductName();
-        sendHtmlEmail(user.getEmail(), subject, buildOrderPlacedBody(user, order));
+        String body = buildOrderPlacedBody(user, order);
+        sendHtmlEmail(user.getEmail(), subject, body);
     }
 
     @Async("emailExecutor")
     public void sendOrderShippedEmail(User user, Order order) {
         String subject = "🚀 Order Shipped – #" + order.getId() + " | " + order.getProductName();
-        sendHtmlEmail(user.getEmail(), subject, buildOrderShippedBody(user, order));
+        String body = buildOrderShippedBody(user, order);
+        sendHtmlEmail(user.getEmail(), subject, body);
     }
 
     @Async("emailExecutor")
     public void sendOrderDeliveredEmail(User user, Order order) {
         String subject = "✅ Order Delivered – #" + order.getId() + " | " + order.getProductName();
-        sendHtmlEmail(user.getEmail(), subject, buildOrderDeliveredBody(user, order));
+        String body = buildOrderDeliveredBody(user, order);
+        sendHtmlEmail(user.getEmail(), subject, body);
     }
 
     @Async("emailExecutor")
     public void sendOrderCancelledEmail(User user, Order order) {
         String subject = "❌ Order Cancelled – #" + order.getId() + " | " + order.getProductName();
-        sendHtmlEmail(user.getEmail(), subject, buildOrderCancelledBody(user, order));
+        String body = buildOrderCancelledBody(user, order);
+        sendHtmlEmail(user.getEmail(), subject, body);
     }
 
     // ---------------------------------------------------------------
@@ -66,7 +80,8 @@ public class EmailService {
     @Async("emailExecutor")
     public void sendAdminReminderEmail(User admin) {
         String subject = "⚠️ Action Required – Pending Order Updates";
-        sendHtmlEmail(admin.getEmail(), subject, buildAdminReminderBody(admin));
+        String body = buildAdminReminderBody(admin);
+        sendHtmlEmail(admin.getEmail(), subject, body);
     }
 
     // ---------------------------------------------------------------
@@ -75,45 +90,17 @@ public class EmailService {
 
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
-            OkHttpClient client = new OkHttpClient();
-
-            // Escape the HTML body for embedding in JSON
-            String escapedHtml = htmlBody
-                    .replace("\\", "\\\\")
-                    .replace("\"", "\\\"")
-                    .replace("\r\n", "\\n")
-                    .replace("\n", "\\n")
-                    .replace("\r", "\\n");
-
-            String escapedSubject = subject
-                    .replace("\\", "\\\\")
-                    .replace("\"", "\\\"");
-
-            String json = "{"
-                    + "\"from\":\"Order Monitor <onboarding@resend.dev>\","
-                    + "\"to\":[\"" + to + "\"],"
-                    + "\"subject\":\"" + escapedSubject + "\","
-                    + "\"html\":\"" + escapedHtml + "\""
-                    + "}";
-
-            RequestBody body = RequestBody.create(json, MediaType.parse("application/json"));
-
-            Request request = new Request.Builder()
-                    .url("https://api.resend.com/emails")
-                    .addHeader("Authorization", "Bearer " + resendApiKey)
-                    .addHeader("Content-Type", "application/json")
-                    .post(body)
-                    .build();
-
-            try (Response response = client.newCall(request).execute()) {
-                if (response.isSuccessful()) {
-                    log.info("Email sent via Resend → {} | {}", to, subject);
-                } else {
-                    log.error("Resend failed: {} – {}", response.code(),
-                            response.body() != null ? response.body().string() : "no body");
-                }
-            }
-        } catch (Exception e) {
+            MimeMessage message = mailSender.createMimeMessage();
+            // FIX 1: false = single-part mode (correct for HTML-only, no attachments).
+            // true (multipart/mixed) caused Gmail SMTP to silently drop the message body.
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(fromEmail, "Order Monitor Platform");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
+            mailSender.send(message);
+            log.info("Email sent → {} | {}", to, subject);
+        } catch (MessagingException | java.io.UnsupportedEncodingException e) {
             log.error("Failed to send email to {}: {}", to, e.getMessage());
         }
     }
