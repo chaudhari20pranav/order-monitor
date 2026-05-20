@@ -7,7 +7,6 @@ import com.ordermonitor.entity.Order;
 import com.ordermonitor.event.*;
 import com.ordermonitor.repository.OrderRepository;
 import com.ordermonitor.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
  *   - In-app notification
  */
 @Service
-@RequiredArgsConstructor
 public class OrderService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
@@ -37,6 +35,14 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+
+    public OrderService(OrderRepository orderRepository,
+                        UserRepository userRepository,
+                        ApplicationEventPublisher eventPublisher) {
+        this.orderRepository = orderRepository;
+        this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
+    }
 
     // ---------------------------------------------------------------
     // Place Order (customer)
@@ -115,7 +121,6 @@ public class OrderService {
         String previous = order.getOrderStatus();
         order.setOrderStatus(newStatus);
 
-        // Set timestamps based on transition
         if ("SHIPPED".equals(newStatus)) {
             order.setShippedAt(LocalDateTime.now());
             Order saved = orderRepository.save(order);

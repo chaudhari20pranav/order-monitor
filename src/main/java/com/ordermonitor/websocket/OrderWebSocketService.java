@@ -1,7 +1,6 @@
 package com.ordermonitor.websocket;
 
 import com.ordermonitor.dto.WsNotification;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -14,12 +13,15 @@ import org.springframework.stereotype.Service;
  * /topic/notifications – lightweight notification alerts
  */
 @Service
-@RequiredArgsConstructor
 public class OrderWebSocketService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderWebSocketService.class);
 
     private final SimpMessagingTemplate messagingTemplate;
+
+    public OrderWebSocketService(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
 
     /** Broadcast a full notification to all connected clients */
     public void broadcastToOrders(WsNotification notification) {

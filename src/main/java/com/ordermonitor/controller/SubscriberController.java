@@ -7,7 +7,6 @@ import com.ordermonitor.service.OrderService;
 import com.ordermonitor.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,12 +20,19 @@ import java.util.Map;
  */
 @Controller
 @RequestMapping("/subscriber")
-@RequiredArgsConstructor
 public class SubscriberController {
 
     private final OrderService orderService;
     private final NotificationService notificationService;
     private final UserService userService;
+
+    public SubscriberController(OrderService orderService,
+                                 NotificationService notificationService,
+                                 UserService userService) {
+        this.orderService = orderService;
+        this.notificationService = notificationService;
+        this.userService = userService;
+    }
 
     // ---------------------------------------------------------------
     // Dashboard page
@@ -44,7 +50,7 @@ public class SubscriberController {
 
         model.addAttribute("orders", allOrders);
         model.addAttribute("liveOrders",
-                allOrders.stream().filter(o -> List.of("PLACED","PAID","SHIPPED").contains(o.getOrderStatus())).toList());
+                allOrders.stream().filter(o -> List.of("PLACED", "PAID", "SHIPPED").contains(o.getOrderStatus())).toList());
         model.addAttribute("completedOrders",
                 allOrders.stream().filter(o -> "DELIVERED".equals(o.getOrderStatus())).toList());
         model.addAttribute("cancelledOrders",

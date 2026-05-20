@@ -3,7 +3,6 @@ package com.ordermonitor.scheduler;
 import com.ordermonitor.entity.User;
 import com.ordermonitor.event.ReminderGeneratedEvent;
 import com.ordermonitor.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -22,7 +21,6 @@ import java.util.List;
  *   - An email to that admin
  */
 @Component
-@RequiredArgsConstructor
 public class AdminReminderScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(AdminReminderScheduler.class);
@@ -30,6 +28,12 @@ public class AdminReminderScheduler {
 
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+
+    public AdminReminderScheduler(UserRepository userRepository,
+                                   ApplicationEventPublisher eventPublisher) {
+        this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
+    }
 
     /** Runs every hour (3600 seconds) */
     @Scheduled(fixedRateString = "PT1H")
@@ -43,8 +47,10 @@ public class AdminReminderScheduler {
         }
 
         for (User admin : inactiveAdmins) {
-            log.info("Admin {} has been inactive for {}+ hours. Sending reminder.", admin.getEmail(), INACTIVITY_HOURS);
-            String message = "⚠️ Reminder: " + admin.getFullName() + " – please check pending order updates in the dashboard.";
+            log.info("Admin {} has been inactive for {}+ hours. Sending reminder.",
+                    admin.getEmail(), INACTIVITY_HOURS);
+            String message = "⚠️ Reminder: " + admin.getFullName()
+                    + " – please check pending order updates in the dashboard.";
             eventPublisher.publishEvent(new ReminderGeneratedEvent(this, admin, message));
         }
     }

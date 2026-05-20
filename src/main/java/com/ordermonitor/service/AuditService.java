@@ -2,7 +2,6 @@ package com.ordermonitor.service;
 
 import com.ordermonitor.entity.OrderEvent;
 import com.ordermonitor.repository.OrderEventRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,10 +12,13 @@ import java.util.List;
  * Used to power the admin live activity feed.
  */
 @Service
-@RequiredArgsConstructor
 public class AuditService {
 
     private final OrderEventRepository orderEventRepository;
+
+    public AuditService(OrderEventRepository orderEventRepository) {
+        this.orderEventRepository = orderEventRepository;
+    }
 
     @Transactional
     public void log(Long orderId, String eventType, String message) {

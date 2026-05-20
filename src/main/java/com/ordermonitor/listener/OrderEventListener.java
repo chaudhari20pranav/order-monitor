@@ -9,7 +9,6 @@ import com.ordermonitor.service.AuditService;
 import com.ordermonitor.service.EmailService;
 import com.ordermonitor.service.NotificationService;
 import com.ordermonitor.websocket.OrderWebSocketService;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -25,7 +24,6 @@ import org.springframework.stereotype.Component;
  *   4. Email → subscriber's inbox (async)
  */
 @Component
-@RequiredArgsConstructor
 public class OrderEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(OrderEventListener.class);
@@ -35,6 +33,18 @@ public class OrderEventListener {
     private final AuditService auditService;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+
+    public OrderEventListener(OrderWebSocketService webSocketService,
+                               EmailService emailService,
+                               AuditService auditService,
+                               NotificationService notificationService,
+                               UserRepository userRepository) {
+        this.webSocketService = webSocketService;
+        this.emailService = emailService;
+        this.auditService = auditService;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
+    }
 
     // ---------------------------------------------------------------
     // ORDER PLACED
@@ -52,7 +62,6 @@ public class OrderEventListener {
         webSocketService.broadcastToOrders(ws);
         webSocketService.broadcastNotification(ws);
 
-        // Email subscriber
         userRepository.findById(order.getUserId()).ifPresent(u ->
                 emailService.sendOrderPlacedEmail(u, order));
 
@@ -94,7 +103,6 @@ public class OrderEventListener {
         webSocketService.broadcastToOrders(ws);
         webSocketService.broadcastNotification(ws);
 
-        // Email subscriber
         userRepository.findById(order.getUserId()).ifPresent(u ->
                 emailService.sendOrderShippedEmail(u, order));
 
@@ -117,7 +125,6 @@ public class OrderEventListener {
         webSocketService.broadcastToOrders(ws);
         webSocketService.broadcastNotification(ws);
 
-        // Email subscriber
         userRepository.findById(order.getUserId()).ifPresent(u ->
                 emailService.sendOrderDeliveredEmail(u, order));
 
@@ -140,7 +147,6 @@ public class OrderEventListener {
         webSocketService.broadcastToOrders(ws);
         webSocketService.broadcastNotification(ws);
 
-        // Email subscriber
         userRepository.findById(order.getUserId()).ifPresent(u ->
                 emailService.sendOrderCancelledEmail(u, order));
 
@@ -159,7 +165,6 @@ public class OrderEventListener {
         WsNotification ws = new WsNotification("REMINDER", msg, null, null);
         webSocketService.broadcastNotification(ws);
 
-        // Email admin
         emailService.sendAdminReminderEmail(admin);
 
         log.info("ReminderGeneratedEvent handled for admin: {}", admin.getEmail());

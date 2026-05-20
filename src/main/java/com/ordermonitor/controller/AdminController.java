@@ -6,12 +6,10 @@ import com.ordermonitor.service.AuditService;
 import com.ordermonitor.service.OrderService;
 import com.ordermonitor.service.UserService;
 import jakarta.servlet.http.HttpSession;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,13 +20,20 @@ import java.util.Map;
  */
 @Controller
 @RequestMapping("/admin")
-@RequiredArgsConstructor
 public class AdminController {
 
     private final OrderService orderService;
     private final AuditService auditService;
     private final UserService userService;
     private final OrderRepository orderRepository;
+
+    public AdminController(OrderService orderService, AuditService auditService,
+                           UserService userService, OrderRepository orderRepository) {
+        this.orderService = orderService;
+        this.auditService = auditService;
+        this.userService = userService;
+        this.orderRepository = orderRepository;
+    }
 
     // ---------------------------------------------------------------
     // Dashboard page
@@ -40,7 +45,6 @@ public class AdminController {
             return "redirect:/login";
         }
 
-        // Refresh admin's last_active timestamp
         userService.updateLastActive(userService.getSessionUserId(session));
 
         model.addAttribute("stats", orderService.getAdminStats());
@@ -48,7 +52,6 @@ public class AdminController {
         model.addAttribute("recentEvents", auditService.getRecentEvents());
         model.addAttribute("userName", session.getAttribute("userName"));
 
-        // Delayed order warnings
         LocalDateTime ship24h = LocalDateTime.now().minusHours(24);
         LocalDateTime deliver48h = LocalDateTime.now().minusHours(48);
         model.addAttribute("delayedShipments", orderRepository.findDelayedShipments(ship24h));

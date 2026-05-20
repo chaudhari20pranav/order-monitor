@@ -1,12 +1,10 @@
 package com.ordermonitor.dto;
 
 import jakarta.validation.constraints.*;
-import lombok.Data;
 
 /**
  * DTO for user registration.
  */
-@Data
 public class RegisterRequest {
 
     @NotBlank(message = "Full name is required")
@@ -23,4 +21,25 @@ public class RegisterRequest {
     @NotBlank(message = "Role is required")
     @Pattern(regexp = "ADMIN|SUBSCRIBER", message = "Role must be ADMIN or SUBSCRIBER")
     private String role;
+
+    public RegisterRequest() {}
+
+    public RegisterRequest(String fullName, String email, String password, String role) {
+        this.fullName = fullName;
+        this.email = email;
+        this.password = password;
+        this.role = role;
+    }
+
+    public String getFullName()          { return fullName; }
+    public void setFullName(String v)    { this.fullName = v; }
+
+    public String getEmail()             { return email; }
+    public void setEmail(String v)       { this.email = v; }
+
+    public String getPassword()          { return password; }
+    public void setPassword(String v)    { this.password = v; }
+
+    public String getRole()              { return role; }
+    public void setRole(String v)        { this.role = v; }
 }

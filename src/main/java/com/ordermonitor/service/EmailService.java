@@ -4,7 +4,6 @@ import com.ordermonitor.entity.Order;
 import com.ordermonitor.entity.User;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,9 +17,15 @@ import org.springframework.stereotype.Service;
  *
  * All emails come from: online.monitor.apt@gmail.com
  * All send methods are @Async – they never block the HTTP thread.
+ *
+ * Bug fixes applied:
+ *  1. MimeMessageHelper multipart=false  → correct for HTML-only emails (no attachments).
+ *     multipart=true wraps the body in multipart/mixed, causing Gmail SMTP to silently
+ *     drop or misrender the message.
+ *  2. spring.mail.properties.mail.smtp.ssl.trust=smtp.gmail.com must be set in
+ *     application.properties so the STARTTLS handshake on port 587 succeeds reliably.
  */
 @Service
-@RequiredArgsConstructor
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
@@ -29,6 +34,10 @@ public class EmailService {
 
     @Value("${spring.mail.username:online.monitor.apt@gmail.com}")
     private String fromEmail;
+
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
 
     // ---------------------------------------------------------------
     // Customer Emails
@@ -80,7 +89,9 @@ public class EmailService {
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            // FIX 1: false = single-part mode (correct for HTML-only, no attachments).
+            // true (multipart/mixed) caused Gmail SMTP to silently drop the message body.
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
             helper.setFrom(fromEmail, "Order Monitor Platform");
             helper.setTo(to);
             helper.setSubject(subject);

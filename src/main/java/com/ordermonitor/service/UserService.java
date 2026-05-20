@@ -5,7 +5,6 @@ import com.ordermonitor.dto.RegisterRequest;
 import com.ordermonitor.entity.User;
 import com.ordermonitor.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -19,16 +18,20 @@ import java.time.LocalDateTime;
  * Uses BCrypt for password hashing – no Spring Security filters involved.
  */
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
-    static final String SESSION_USER_ID  = "userId";
+    static final String SESSION_USER_ID   = "userId";
     static final String SESSION_USER_ROLE = "userRole";
     static final String SESSION_USER_NAME = "userName";
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+
+    public UserService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     // ---------------------------------------------------------------
     // Registration
@@ -64,12 +67,10 @@ public class UserService {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        // Store minimal info in session
         session.setAttribute(SESSION_USER_ID, user.getId());
         session.setAttribute(SESSION_USER_ROLE, user.getRole());
         session.setAttribute(SESSION_USER_NAME, user.getFullName());
 
-        // Update last_active timestamp
         updateLastActive(user.getId());
 
         log.info("User logged in: id={}, role={}", user.getId(), user.getRole());

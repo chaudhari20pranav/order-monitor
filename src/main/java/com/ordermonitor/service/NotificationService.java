@@ -2,7 +2,6 @@ package com.ordermonitor.service;
 
 import com.ordermonitor.entity.Notification;
 import com.ordermonitor.repository.NotificationRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,10 +11,13 @@ import java.util.List;
  * Saves and retrieves in-app notifications from the database.
  */
 @Service
-@RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+
+    public NotificationService(NotificationRepository notificationRepository) {
+        this.notificationRepository = notificationRepository;
+    }
 
     /** Save a notification for a specific user */
     @Transactional

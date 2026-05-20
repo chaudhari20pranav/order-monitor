@@ -1,14 +1,11 @@
 package com.ordermonitor.dto;
 
 import jakarta.validation.constraints.*;
-import lombok.Data;
-
 import java.math.BigDecimal;
 
 /**
  * DTO for placing a new product order.
  */
-@Data
 public class OrderRequest {
 
     @NotBlank(message = "Product name is required")
@@ -26,4 +23,25 @@ public class OrderRequest {
     @NotNull(message = "Price is required")
     @DecimalMin(value = "0.01", message = "Price must be positive")
     private BigDecimal price;
+
+    public OrderRequest() {}
+
+    public OrderRequest(String productName, String category, Integer quantity, BigDecimal price) {
+        this.productName = productName;
+        this.category = category;
+        this.quantity = quantity;
+        this.price = price;
+    }
+
+    public String getProductName()           { return productName; }
+    public void setProductName(String v)     { this.productName = v; }
+
+    public String getCategory()              { return category; }
+    public void setCategory(String v)        { this.category = v; }
+
+    public Integer getQuantity()             { return quantity; }
+    public void setQuantity(Integer v)       { this.quantity = v; }
+
+    public BigDecimal getPrice()             { return price; }
+    public void setPrice(BigDecimal v)       { this.price = v; }
 }
